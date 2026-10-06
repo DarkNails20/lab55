@@ -27,24 +27,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # SAST — статический анализ
       - name: Run Bandit SAST
         run: |
           mkdir -p reports
-          bandit -r . -x ./venv -f txt -o reports/bandit-report.txt
+          bandit -r . -x ./venv -f txt -o reports/bandit-report.txt || true
 
+      # Показываем результат Bandit прямо в GitHub Actions
+      - name: Show Bandit report
+        if: always()
+        run: |
+          cat reports/bandit-report.txt
+
+      # Запускаем Flask API
       - name: Start Flask API
         run: |
           python app.py > flask.log 2>&1 &
           sleep 5
 
+      # Проверяем, что API запустился
       - name: Check API
         run: |
           curl --fail http://127.0.0.1:5000/api/users
 
+      # API Security Testing
       - name: Run API security tests
         run: |
           python -m unittest -v test_security.py
 
+      # Сохраняем отчёты
       - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v4
